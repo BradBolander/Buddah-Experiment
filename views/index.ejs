@@ -218,7 +218,7 @@
 				// add time to the noise parameters so it's animated
 				noise = 55.0 * - .01 * turbulence( 1.501 * normal + sin(time) ) + .03;
 				float b = 40.0 * pnoise( .05 + vec3( 4. *  time / 5. ), vec3( 10.0 ) );
-				float displacement = sin(noise / 2. * b);
+				float displacement = sin(noise / 2. * b) * 5.;
 				
 				vec3 newPosition = position + normal * displacement;
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
