@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webvr - cubes</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+		<!-- Origin Trial Token, feature = WebVR (For Chrome M59+), origin = https://threejs.org, expires = 2017-10-09 -->
+		<meta http-equiv="origin-trial" data-feature="WebVR (For Chrome M59+)" data-expires="2017-10-09" content="AjrMPp+ZdEH97MOiKUzcpxLvh+B6I0CL55bPSbvQxL5ggVHl7X2dyEwTfXUgaMV7YLPOev4VZ4Uz+jMTsx3MPQEAAABNeyJvcmlnaW4iOiJodHRwczovL3RocmVlanMub3JnOjQ0MyIsImZlYXR1cmUiOiJXZWJWUjEuMSIsImV4cGlyeSI6MTUwNzU3MTAwOH0=">
+		<style>
+			html {
+				overflow: hidden;
+				padding: 0px;
+				margin: 0px;
+				width: 100%;
+				height: 100%;
+				background: #11e8bb; /* Old browsers */
+				/* Chrome10-25,Safari5.1-6 */
+				background: linear-gradient(#6ACDB7 0%,#501CBE 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+				filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#11e8bb', endColorstr='#8200c9',GradientType=0 ); /* IE6-9 */
+			}
+			body{
+				margin: 0px;
+			}
+		</style>
+	</head>
+	
+	<body>
+
+		<script src="javascripts/three.js"></script>
+		<script src="javascripts/OBJLoader.js"></script>
+		<script src="javascripts/OrbitControls.js"></script>
+
+		<script id="vertexShader" type="x-shader/x-vertex">
+			uniform float time;
+			varying vec2 vUv;
+			varying float noise;
+			varying vec3 pos;
+	
+	
+			vec3 mod289(vec3 x)
+			{
+			return x - floor(x * (2.0 / 289.0)) * 289.0;
+			}
+	
+			vec4 mod289(vec4 x)
+			{
+			return x - floor(x * (1.0 / 289.0)) * 289.0;
+			}
+	
+			vec4 permute(vec4 x)
+			{
+			return mod289(((x*34.0)+1.0)*x);
+			}
+	
+			vec4 taylorInvSqrt(vec4 r)
+			{
+			return 1.79284291400159 - 0.85373472095314 * r;
+			}
+	
+			vec3 fade(vec3 t) {
+			return t*t*t*(t*(t*6.0-15.0)+10.0);
+			}
+	
+			// Classic Perlin noise
+			float cnoise(vec3 P)
+			{
+			vec3 Pi0 = floor(P); // Integer part for indexing
+			vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
+			Pi0 = mod289(Pi0);
+			Pi1 = mod289(Pi1);
+			vec3 Pf0 = fract(P); // Fractional part for interpolation
+			vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+			vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+			vec4 iy = vec4(Pi0.yy, Pi1.yy);
+			vec4 iz0 = Pi0.zzzz;
+			vec4 iz1 = Pi1.zzzz;
+	
+			vec4 ixy = permute(permute(ix) + iy);
+			vec4 ixy0 = permute(ixy + iz0);
+			vec4 ixy1 = permute(ixy + iz1);
+	
+			vec4 gx0 = ixy0 * (1.0 / 7.0);
+			vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+			gx0 = fract(gx0);
+			vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+			vec4 sz0 = step(gz0, vec4(0.0));
+			gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+			gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+	
+			vec4 gx1 = ixy1 * (1.0 / 7.0);
+			vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+			gx1 = fract(gx1);
+			vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+			vec4 sz1 = step(gz1, vec4(0.0));
+			gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+			gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+	
+			vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+			vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+			vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+			vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+			vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+			vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+			vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+			vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+	
+			vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+			g000 *= norm0.x;
+			g010 *= norm0.y;
+			g100 *= norm0.z;
+			g110 *= norm0.w;
+			vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+			g001 *= norm1.x;
+			g011 *= norm1.y;
+			g101 *= norm1.z;
+			g111 *= norm1.w;
+	
+			float n000 = dot(g000, Pf0);
+			float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+			float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+			float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+			float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+			float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+			float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+			float n111 = dot(g111, Pf1);
+	
+			vec3 fade_xyz = fade(Pf0);
+			vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+			vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+			float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+			return 2.2 * n_xyz;
+			}
+	
+			float pnoise(vec3 P, vec3 rep)
+			{
+			vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period
+			vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period
+			Pi0 = mod289(Pi0);
+			Pi1 = mod289(Pi1);
+			vec3 Pf0 = fract(P); // Fractional part for interpolation
+			vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+			vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+			vec4 iy = vec4(Pi0.yy, Pi1.yy);
+			vec4 iz0 = Pi0.zzzz;
+			vec4 iz1 = Pi1.zzzz;
+	
+			vec4 ixy = permute(permute(ix) + iy);
+			vec4 ixy0 = permute(ixy + iz0);
+			vec4 ixy1 = permute(ixy + iz1);
+	
+			vec4 gx0 = ixy0 * (1.0 / 7.0);
+			vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+			gx0 = fract(gx0);
+			vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+			vec4 sz0 = step(gz0, vec4(0.0));
+			gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+			gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+	
+			vec4 gx1 = ixy1 * (1.0 / 7.0);
+			vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+			gx1 = fract(gx1);
+			vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+			vec4 sz1 = step(gz1, vec4(0.0));
+			gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+			gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+	
+			vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+			vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+			vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+			vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+			vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+			vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+			vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+			vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+	
+			vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+			g000 *= norm0.x;
+			g010 *= norm0.y;
+			g100 *= norm0.z;
+			g110 *= norm0.w;
+			vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+			g001 *= norm1.x;
+			g011 *= norm1.y;
+			g101 *= norm1.z;
+			g111 *= norm1.w;
+	
+			float n000 = dot(g000, Pf0);
+			float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+			float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+			float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+			float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+			float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+			float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+			float n111 = dot(g111, Pf1);
+	
+			vec3 fade_xyz = fade(Pf0);
+			vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+			vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+			float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+			return 2.2 * n_xyz;
+			}
+	
+	
+			float turbulence( vec3 p ) {
+				float w = 100.0;
+				float t = -.5;
+				for (float f = 1.0 ; f <= 10.0 ; f++ ){
+					float power = pow( 2.0, f );
+					t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );
+				}
+				return t;
+			}
+	
+			void main() {
+				pos = position;
+				vUv = uv;
+	
+				// add time to the noise parameters so it's animated
+				noise = 55.0 * - .01 * turbulence( 1.501 * normal + sin(time) ) + .03;
+				float b = 40.0 * pnoise( .05 + vec3( 4. *  time / 5. ), vec3( 10.0 ) );
+				float displacement = sin(noise / 2. * b);
+				
+				vec3 newPosition = position + normal * displacement;
+				gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+	
+		  }
+		</script>
+		
+		<script id="fragmentShader" type="x-shader/x-fragment">
+			varying vec2 vUv;
+			varying float noise;
+			varying float color;
+			uniform float time;
+			varying vec3 pos;
+			
+					void main()	{
+		
+		
+		
+						vec3 color = vec3(
+				mix(noise  * sin(tan(mix(noise,pos.z, sin(noise)))), sin(time), noise * 2.3 * sin(time)) + .2
+				,
+				mix(noise  * cos(mix(noise,pos.z, mix(noise, noise, noise))), sin(time), noise * 4. * cos(time)) + .2,
+				mix(noise  * sin(mix(noise,pos.z, sin(noise))), sin(time), noise * 3.2 * sin(time)) + .5
+				
+				);
+				
+					gl_FragColor = vec4( color.rgb, 1.0 );
+					}
+		
+		</script>				
+		<script>
+
+				// Initialization      
+				var container;
+				var camera, scene, renderer, shaderMaterial;
+				var start = Date.now();
+				init();
+				animate();
+				function init() {
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.y = 400;
+				scene = new THREE.Scene();
+				
+
+				// Lights, gotta be able to see
+				var light;
+				scene.add( new THREE.AmbientLight( 0xFF9F2C ) );
+				light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 0, 1, 0 );
+				scene.add( light );
+
+				
+
+				// Material to be used in our sphere
+				// https://threejs.org/docs/index.html#Reference/Materials/MeshLambertMaterial
+				// The docs have all the properties you can mess with on the material, try adding some new ones, color, opacity, etc.
+				var material = new THREE.MeshLambertMaterial({
+					side: THREE.DoubleSide,
+					wireframe: true 
+				});
+
+				shaderMaterial = new THREE.ShaderMaterial( {
+				
+					uniforms: { 
+						time: { // float initialized to 0
+							type: "f", 
+							value: 0.0 
+						}
+					},
+					vertexShader: document.getElementById( 'vertexShader' ).textContent,
+					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
+					
+				} );
+
+				var manager = new THREE.LoadingManager();
+				manager.onProgress = function ( item, loaded, total ) {
+					console.log( item, loaded, total );
+				};
+				var texture = new THREE.Texture();
+				var onProgress = function ( xhr ) {
+					if ( xhr.lengthComputable ) {
+						var percentComplete = xhr.loaded / xhr.total * 100;
+						console.log( Math.round(percentComplete, 2) + '% downloaded' );
+					}
+				};
+				var onError = function ( xhr ) {
+				};
+
+				var loader = new THREE.OBJLoader( manager );
+				loader.load( 'obj/buddha.obj', function ( object ) {
+					object.traverse( function ( child ) {
+						if ( child instanceof THREE.Mesh ) {
+							child.material = shaderMaterial;
+						}
+					} );
+					object.position.x = 220;
+					object.position.y = 0;
+					object.position.z = 70;
+					object.rotation.x = -.4;
+					object.rotation.y = 1.55;
+					object.rotation.z = -1;
+					object.scale.set( 10, 10, 10 )
+					scene.add( object );
+				}, onProgress, onError );
+				
+				var geometry = new THREE.TorusGeometry( .1, 8, 3, 100 );
+				// var material = new THREE.MeshStandardMaterial( { color: 0x00FF70, wireframe: true } );
+				var torus = new THREE.Mesh( geometry, shaderMaterial );
+				torus.rotation.x = 1;
+				torus.position.y = 20;
+				scene.add( torus );
+
+				var geometry = new THREE.TorusGeometry( .1, 25, 206, 200 );
+				// var material = new THREE.MeshStandardMaterial( { color: 0xFFFFFF, wireframe: true } );
+				var torusSmall = new THREE.Mesh( geometry, shaderMaterial );
+				torusSmall.rotation.x = 1;
+				torusSmall.position.y = 20;
+				scene.add( torusSmall );  
+				
+				
+
+				// More setup stuff for renderer
+				renderer = new THREE.WebGLRenderer( { antialias: true, alpha: true } );
+			
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+				window.addEventListener( 'resize', onWindowResize, false );
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.addEventListener( 'change', render ); // remove when using animation loop
+				}
+
+				// Makes it so it doesnt break when you adjust window size
+				function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				}
+
+				function animate() {
+				requestAnimationFrame( animate );
+				render();
+				}
+					
+				// Runs constantly, think of like an update loop
+				function render() {
+				var timer = Date.now() * 0.0001;
+				camera.lookAt( scene.position );
+				var torus = scene.children[3];
+  				torus.rotation.z += timer * 5;
+				
+				for ( var i = 0, l = scene.children.length; i < l; i ++ ) {
+					var object = scene.children[ i ];
+					
+					// Makes our sphere turn, try tweaking these
+					
+					
+				}
+				shaderMaterial.uniforms[ 'time' ].value = .0001 * ( Date.now() - start );
+				renderer.render( scene, camera );
+				}
+
+
+		</script>
+	</body>
+</html>
+
