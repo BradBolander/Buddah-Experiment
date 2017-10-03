@@ -218,7 +218,7 @@
 				// add time to the noise parameters so it's animated
 				noise = 55.0 * - .01 * turbulence( 1.501 * normal + sin(time) ) + .03;
 				float b = 40.0 * pnoise( .05 + vec3( 4. *  time / 5. ), vec3( 10.0 ) );
-				float displacement = sin(noise / 2. * b) * 5.;
+				float displacement = sin(noise / 2. * b);
 				
 				vec3 newPosition = position + normal * displacement;
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
@@ -238,10 +238,10 @@
 		
 		
 						vec3 color = vec3(
-				mix(noise  * sin(tan(mix(noise,pos.z, sin(noise)))), sin(time), noise * 2.3 * sin(time)) + .2
+				mix(noise  * sin(tan(mix(noise,pos.z, sin(noise)))), sin(time), noise * 2.3 * sin(time)) + .4
 				,
-				mix(noise  * cos(mix(noise,pos.z, mix(noise, noise, noise))), sin(time), noise * 4. * cos(time)) + .2,
-				mix(noise  * sin(mix(noise,pos.z, sin(noise))), sin(time), noise * 3.2 * sin(time)) + .5
+				mix(noise  * cos(mix(noise,pos.z, mix(noise, noise, noise))), sin(time), noise * 4. * cos(time)) + .3,
+				mix(noise  * sin(mix(noise,pos.z, sin(noise))), sin(time), noise * 3.2 * sin(time)) + .8
 				
 				);
 				
@@ -261,7 +261,7 @@
 				container = document.createElement( 'div' );
 				document.body.appendChild( container );
 				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
-				camera.position.y = 400;
+				camera.position.x = 250;
 				scene = new THREE.Scene();
 				
 
@@ -316,28 +316,22 @@
 							child.material = shaderMaterial;
 						}
 					} );
-					object.position.x = 220;
-					object.position.y = 0;
-					object.position.z = 70;
-					object.rotation.x = -.4;
-					object.rotation.y = 1.55;
-					object.rotation.z = -1;
+					object.position.x = 10;
+					object.position.y = -80;
+					object.position.z = -222;
+          object.rotation.y = 3.13159;
 					object.scale.set( 10, 10, 10 )
 					scene.add( object );
 				}, onProgress, onError );
 				
-				var geometry = new THREE.TorusGeometry( .1, 8, 3, 100 );
-				// var material = new THREE.MeshStandardMaterial( { color: 0x00FF70, wireframe: true } );
-				var torus = new THREE.Mesh( geometry, shaderMaterial );
-				torus.rotation.x = 1;
-				torus.position.y = 20;
-				scene.add( torus );
 
-				var geometry = new THREE.TorusGeometry( .1, 25, 206, 200 );
+
+				var geometry = new THREE.TorusGeometry( .1, 25, 26, 20 );
 				// var material = new THREE.MeshStandardMaterial( { color: 0xFFFFFF, wireframe: true } );
 				var torusSmall = new THREE.Mesh( geometry, shaderMaterial );
-				torusSmall.rotation.x = 1;
-				torusSmall.position.y = 20;
+				torusSmall.position.x = 0;
+        torusSmall.position.y = 0;
+        torusSmall.position.z = 0;
 				scene.add( torusSmall );  
 				
 				
@@ -368,9 +362,6 @@
 				// Runs constantly, think of like an update loop
 				function render() {
 				var timer = Date.now() * 0.0001;
-				camera.lookAt( scene.position );
-				var torus = scene.children[3];
-  				torus.rotation.z += timer * 5;
 				
 				for ( var i = 0, l = scene.children.length; i < l; i ++ ) {
 					var object = scene.children[ i ];
