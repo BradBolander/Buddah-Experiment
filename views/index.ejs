@@ -35,6 +35,7 @@
 			varying vec2 vUv;
 			varying float noise;
 			varying vec3 pos;
+      uniform float mouseX;
 	
 	
 			vec3 mod289(vec3 x)
@@ -218,12 +219,13 @@
 				// add time to the noise parameters so it's animated
 				noise = 55.0 * - .01 * turbulence( 1.501 * normal + sin(time) ) + .03;
 				float b = 40.0 * pnoise( .05 + vec3( 4. *  time / 5. ), vec3( 10.0 ) );
-				float displacement = -5. + sin(noise * 5.) + time;
+				float displacement = -5. + sin(noise * 5.) + time + mouseX;
+        float displacement2 = sin(noise * 5.) - 1. + mouseX;
         vec3 newPosition;
 				if (displacement < -.3) {
            newPosition  = position + normal * displacement;
         } else {
-           newPosition = position + normal * -.3;
+           newPosition = position + normal * displacement2;
         }
 				gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
 	
@@ -235,6 +237,7 @@
 			varying float noise;
 			varying float color;
 			uniform float time;
+      uniform float mouseX;
 			varying vec3 pos;
 			
 					void main()	{
@@ -242,10 +245,9 @@
 		
 		
 						vec3 color = vec3(
-				mix(noise  * sin(tan(mix(noise,pos.z, sin(noise)))), sin(time), noise * 2.3 * sin(time)) + .4
-				,
+				mix(noise  * sin(tan(mix(noise,pos.z, sin(noise)))), sin(time), noise * 2.3 * sin(time)) + .4,
 				mix(noise  * cos(mix(noise,pos.z, mix(noise, noise, noise))), sin(time), noise * 4. * cos(time)) + .3,
-				mix(noise  * sin(mix(noise,pos.z, sin(noise))), sin(time), noise * 3.2 * sin(time)) + .8
+				mix(noise  * sin(mix(noise,pos.z, sin(noise))), sin(time), noise * 3.2 * sin(time)) + .8 + mouseX
 				
 				);
 				
@@ -258,6 +260,7 @@
 				// Initialization      
 				var container;
 				var camera, scene, renderer, shaderMaterial;
+        var mouseX;
 				var start = Date.now();
 				init();
 				animate();
@@ -292,7 +295,11 @@
 						time: { // float initialized to 0
 							type: "f", 
 							value: 0.0 
-						}
+						},
+            mouseX: {
+              type: "f",
+              value: 0.0
+            }
 					},
 					vertexShader: document.getElementById( 'vertexShader' ).textContent,
 					fragmentShader: document.getElementById( 'fragmentShader' ).textContent
@@ -327,6 +334,13 @@
 					object.scale.set( 10, 10, 10 )
 					scene.add( object );
 				}, onProgress, onError );
+
+        
+        document.onmousemove = function(e){
+            mouseX = e.pageX;
+            shaderMaterial.uniforms[ 'mouseX' ].value = mouseX /2000;
+
+        }
 				
 
 
